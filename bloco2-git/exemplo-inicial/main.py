@@ -1,9 +1,11 @@
 """
-API de Detecção de Fraude - Versão 1.0 Estável
-==============================================
+API de Detecção de Fraude - Versão 1.1 COM BUG CRÍTICO
+======================================================
 
-Esta é a versão estável da API que está rodando em produção.
-Histórico Git completo disponível para rastreabilidade.
+⚠️ ATENÇÃO: Esta versão contém um bug intencional!
+Deploy desta versão quebrará a produção.
+
+Bug: linha 72 - ZeroDivisionError
 """
 
 from fastapi import FastAPI
@@ -12,7 +14,7 @@ from typing import Dict
 
 app = FastAPI(
     title="API Anti-Fraude",
-    version="1.0.0",
+    version="1.1.0",
     description="Sistema de detecção de transações fraudulentas"
 )
 
@@ -38,7 +40,7 @@ class RespostaFraude(BaseModel):
 async def root() -> Dict[str, str]:
     """Endpoint de boas-vindas"""
     return {
-        "mensagem": "API Anti-Fraude v1.0 - Operacional",
+        "mensagem": "API Anti-Fraude v1.1 - Operacional",
         "status": "healthy",
         "documentacao": "/docs"
     }
@@ -47,21 +49,25 @@ async def root() -> Dict[str, str]:
 @app.get("/health")
 async def health_check() -> Dict[str, str]:
     """Health check para monitoramento"""
-    return {"status": "ok", "version": "1.0.0"}
+    return {"status": "ok", "version": "1.1.0"}
 
 
 @app.post("/analisar", response_model=RespostaFraude)
 async def analisar_transacao(transacao: Transacao) -> RespostaFraude:
     """
     Analisa uma transação e retorna se é fraudulenta.
-    
-    Regra de negócio atual:
-    - Transações acima de R$ 10.000 são marcadas como fraude
+
+    ⚠️ VERSÃO COM BUG: Este código vai quebrar!
     """
     # Validação de entrada já feita pelo Pydantic
     valor_processado = float(transacao.valor)
-    
-    # Regra de negócio principal
+
+    # ❌ BUG CRÍTICO: Esta linha causa ZeroDivisionError!
+    # Desenvolvedor tentou adicionar uma "feature de normalização"
+    # mas introduziu um bug catastrófico
+    resultado_normalizacao = 1 / 0  # 💥 BOOM! Divisão por zero
+
+    # Regra de negócio principal (nunca será executada)
     if valor_processado > 10000:
         return RespostaFraude(
             fraude=True,
@@ -69,7 +75,7 @@ async def analisar_transacao(transacao: Transacao) -> RespostaFraude:
             valor_processado=valor_processado,
             motivo="Valor acima do threshold de R$ 10.000"
         )
-    
+
     # Análise de padrões adicionais
     if transacao.hora_do_dia < 6 and transacao.numero_transacoes_hoje > 5:
         return RespostaFraude(
@@ -78,7 +84,7 @@ async def analisar_transacao(transacao: Transacao) -> RespostaFraude:
             valor_processado=valor_processado,
             motivo="Múltiplas transações em horário suspeito (madrugada)"
         )
-    
+
     if transacao.distancia_ultima_compra_km > 500 and transacao.idade_conta_dias < 30:
         return RespostaFraude(
             fraude=True,
@@ -86,7 +92,7 @@ async def analisar_transacao(transacao: Transacao) -> RespostaFraude:
             valor_processado=valor_processado,
             motivo="Distância suspeita com conta recente"
         )
-    
+
     # Transação legítima
     return RespostaFraude(
         fraude=False,
